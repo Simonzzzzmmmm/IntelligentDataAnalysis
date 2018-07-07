@@ -38,10 +38,10 @@ def PCA(eigenvalue,xis):
     ratio = 0
     total_real_value = 0
     new_xis = []
-    while (ratio != 0.7):
+    while (ratio != 0.8):
         max_index = np.argmax(eigenvalue)
         new_xis.append(xis[:,max_index])
-        #删除数据集中对应的最大数值列
+        #delete the dimension that has the max value, for the following argmax.
         xis = np.delete(xis,max_index,axis=1)
         eigenvalue = np.delete(eigenvalue,eigenvalue[max_index],axis=0)
         total_real_value+=eigenvalue[max_index]
@@ -49,9 +49,7 @@ def PCA(eigenvalue,xis):
             break
     new_axis = np.transpose(np.array(new_xis))
     return new_axis
-if __name__=="__main__":
-
-    #generate 10 points randomly
+def data_pruning_for_school_explorer():
     data_set = pd.read_csv("C:\\Users\\ZM\\Desktop\\IDA\\2016 School Explorer.csv")
     titles = data_set.columns
     data_set.drop(data_set.columns[0:6],axis = 1,inplace = True)
@@ -95,6 +93,10 @@ if __name__=="__main__":
     data_set = np.array(data_set)
     data_set = normalization(data_set)
     data_set = mean_preprocessing(data_set)
+    return data_set
+if __name__=="__main__":
+    
+    data_set = data_pruning_for_school_explorer()
     C = get_C(data_set)
     eigenvalue,eigenvector = get_eigen(C)
     new_data_set = PCA(eigenvalue,data_set)
