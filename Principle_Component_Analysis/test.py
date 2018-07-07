@@ -50,7 +50,7 @@ def PCA(eigenvalue,xis):
     new_axis = np.transpose(np.array(new_xis))
     return new_axis
 def data_pruning_for_school_explorer():
-    data_set = pd.read_csv("C:\\Users\\ZM\\Desktop\\IDA\\2016 School Explorer.csv")
+    data_set = pd.read_csv("2016 School Explorer.csv")
     titles = data_set.columns
     data_set.drop(data_set.columns[0:6],axis = 1,inplace = True)
     data_set.drop("Address (Full)",axis = 1,inplace = True)
@@ -99,6 +99,7 @@ if __name__=="__main__":
     data_set = data_pruning_for_school_explorer()
     C = get_C(data_set)
     eigenvalue,eigenvector = get_eigen(C)
+    #do principle component analysis
     new_data_set = PCA(eigenvalue,data_set)
     print(new_data_set.shape)
     plt.show()
