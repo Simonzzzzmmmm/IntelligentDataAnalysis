@@ -1,5 +1,6 @@
 from sklearn.datasets import load_boston
 import numpy as np
+import math
 import scipy.linalg
 from sklearn import preprocessing
 from numpy.linalg import cholesky
@@ -28,18 +29,20 @@ def show_graph(points):
     for i in range(points.shape[0]):
         plt.plot(points,'.')
 def get_new_points(points,v):
-    new_points = np.dot(points, np.transpose(v))
+    new_v = v[:,0:points.shape[1]]
+    new_points = np.dot(points, np.transpose(new_v))
     return new_points
 def mean_preprocessing(data_set):
     imp = Imputer(missing_values='NaN',strategy='mean',axis=1)
     return imp.transform(data_set)
-def PCA(eigenvalue,xis):
+def PCA(eigenvalue,eigenvector,xis):
     total_value = 0
     for i in range(len(eigenvalue)):
         total_value+=eigenvalue[i]
     ratio = 0
     total_real_value = 0
     new_xis = []
+    new_eigenvector = []
     while (ratio != 0.8):
         max_index = np.argmax(eigenvalue)
         new_xis.append(xis[:,max_index])
@@ -99,7 +102,6 @@ def data_pruning_for_school_explorer():
     data_set = mean_preprocessing(data_set)
     return data_set
 def k_means_clustering(k,data_set):
-    k_points = [[]for i in range(k)]
     #randomly choose k initial center points of clusters, tricky: let data_set be the central points
     def init(k):
         # initial_center = np.zeros((k,len(data_set[0])))
@@ -118,14 +120,16 @@ def k_means_clustering(k,data_set):
     #         sum += float(np.dot(np.transpose(temp),(temp)))
     #     return sum
     # 计算平均数
-    def averagenum(num,j):
+    #ith clusters, jth data, kth dimension
+    def averagenum(num,i,k):
         nsum = 0
-        for i in range(len(num)):
-            nsum += num[i][j]
-        return nsum / len(num)
+        for j in range(len(num[i])):
+            nsum += num[i][j][k]
+        nsum = nsum/len(num[i])
+        return nsum
     def find_clusters(point,initial_center):
-        min_index = 9999
-        min_distance = 9999
+        min_index = math.inf
+        min_distance = math.inf
         for i in range(len(initial_center)):
             distance = Elucidean_distance(point,initial_center[i])
             if (distance<min_distance):
@@ -145,16 +149,25 @@ def k_means_clustering(k,data_set):
             #for every dimension
             for j in range(len(initial_center[0])):
                 #the ith cluster's central point, change initial central points
-                initial_center[i][j] = averagenum(data1,j)
-        if (step<500):
+                initial_center[i][j] = averagenum(clusters,i,j)
+        if (step>3):
             break
         else:
             step+=1
-    plt.plot(data1[:, 0], data1[:, 1], '+')
+    def cal_cost(cluster,initial_center):
+        cost = 0.0
+        length = 0
+        for i in range(len(initial_center)):
+            for j in range(len(clusters[i])):
+                cost+=math.pow(np.linalg.norm(clusters[i][j]-initial_center[i]),2)
+                length+=1
+        return cost/length
+
+    plt.plot(data_set[:, 0], data_set[:, 1], '+')
     for i in range(len(initial_center)):
         plt.plot(initial_center[i][0],initial_center[i][1],'x')
     plt.show()
-
+    return cal_cost(clusters,initial_center)
 if __name__=="__main__":
     
     data_set = data_pruning_for_school_explorer()
@@ -162,10 +175,9 @@ if __name__=="__main__":
     eigenvalue,eigenvector = get_eigen(C)
     # eigenvalue = np.array(eigenvalue,dtype=float)
     #do principle component analysis
-    new_data_set = PCA(eigenvalue,data_set)
-    new_dimension_data = get_new_points(data_set,eigenvector)
-    # print (data_set)
-    # print (new_dimension_data)
+    new_data_set = PCA(eigenvalue,eigenvector,data_set)
+    new_dimension_data = get_new_points(new_data_set,eigenvector)
+
     
     # plt.show()
     # data_set = normalization(data_set)
@@ -174,14 +186,18 @@ if __name__=="__main__":
     # plt.plot(eigenvalue,'.')
     # plt.show()
 
-    data1 = np.random.randn(500, 2)
-    for i in range(len(data1)):
-        data1[i][0] = data1[i][0]+100
-    data2 = np.random.randn(500, 2)-0
-    data3 = np.random.randn(500, 2)-100
-    data1 = np.append(data1,data2,axis = 0)
-    data1 = np.append(data1,data3,axis = 0)
-    k_means_clustering(4,data1)
+    # data1 = np.random.randn(500, 2)
+    # data3 = np.random.randn(500, 2)-100
+    # data1 = np.append(data1,data3,axis = 0)
+    cost = []
+    for i in range(1,5):
+        cost1 = k_means_clustering(i,new_dimension_data)
+        cost.append(cost1)
+        # plt.plot(i,cost1,'.')
+    print(cost)
+    for i in range(len(cost)):
+        plt.plot(i,cost[i],'.')
+    plt.show()
     # plt.plot(data1[:,0],data1[:,1],'+')
     # plt.show()
 
