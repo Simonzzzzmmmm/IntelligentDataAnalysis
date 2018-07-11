@@ -1,9 +1,6 @@
 from sklearn.datasets import load_boston
 import numpy as np
 import math
-import scipy.linalg
-from sklearn import preprocessing
-from numpy.linalg import cholesky
 from sklearn.preprocessing import Imputer
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -42,7 +39,7 @@ def PCA(eigenvalue,eigenvector,xis):
     ratio = 0
     total_real_value = 0
     new_xis = []
-    new_eigenvector = []
+    rows = 0
     while (ratio != 0.8):
         max_index = np.argmax(eigenvalue)
         new_xis.append(xis[:,max_index])
@@ -50,10 +47,13 @@ def PCA(eigenvalue,eigenvector,xis):
         xis = np.delete(xis,max_index,axis=1)
         eigenvalue = np.delete(eigenvalue,eigenvalue[max_index],axis=0)
         total_real_value+=eigenvalue[max_index]
+        rows+=1
         if (total_real_value/total_value>=0.8):
             break
+    # new_eigenvector = np.zeros((rows,rows))
+    new_eigenvector = eigenvector[:rows,:rows]
     new_axis = np.transpose(np.array(new_xis))
-    return new_axis
+    return new_axis,new_eigenvector
 def data_pruning_for_school_explorer():
     data_set = pd.read_csv("2016 School Explorer.csv")
     data_set.drop(data_set.columns[0:6],axis = 1,inplace = True)
@@ -74,15 +74,6 @@ def data_pruning_for_school_explorer():
     data_set.drop("Grade High",axis = 1,inplace=True)
     data_set = list(data_set.values)
     for i in range(len(data_set)):
-        # if (isinstance(data_set[i][4], (int, float))):
-        #     if (data_set[i][4]==data_set[i][4]):
-        #         #数据集的索引4需要转化为float
-        #         data_set[i][4] = float(data_set[i][4])
-        #     else:
-        #         data_set[i][4] = 1.0
-        # else:
-        #     data_set[i][4] = 1.0
-        #数据集的索引6需要去掉美元符号和逗号并且转化为float
         if_nan = (data_set[i][5]==data_set[i][5])
         if (if_nan==False):
             data_set[i][5] = 0.0
@@ -113,14 +104,6 @@ def k_means_clustering(k,data_set):
     def Elucidean_distance(X1,X2):
         dist = np.linalg.norm(X1-X2)
         return dist
-    # def cal_cost(initial_center,data_set):
-    #     sum = 0 
-    #     for i in len(data_set):
-    #         temp = data_set[i]-initial_center[i]
-    #         sum += float(np.dot(np.transpose(temp),(temp)))
-    #     return sum
-    # 计算平均数
-    #ith clusters, jth data, kth dimension
     def averagenum(num,i,k):
         nsum = 0
         for j in range(len(num[i])):
@@ -162,7 +145,6 @@ def k_means_clustering(k,data_set):
                 cost+=math.pow(np.linalg.norm(clusters[i][j]-initial_center[i]),2)
                 length+=1
         return cost/length
-
     plt.plot(data_set[:, 0], data_set[:, 1], '+')
     for i in range(len(initial_center)):
         plt.plot(initial_center[i][0],initial_center[i][1],'x')
@@ -175,28 +157,16 @@ if __name__=="__main__":
     eigenvalue,eigenvector = get_eigen(C)
     # eigenvalue = np.array(eigenvalue,dtype=float)
     #do principle component analysis
-    new_data_set = PCA(eigenvalue,eigenvector,data_set)
-    new_dimension_data = get_new_points(new_data_set,eigenvector)
-
-    
-    # plt.show()
-    # data_set = normalization(data_set)
-    # co_variance_matrix = get_C(data_set)
-    # eigenvalue,eigenvector = get_eigen(co_variance_matrix)
-    # plt.plot(eigenvalue,'.')
-    # plt.show()
-
-    # data1 = np.random.randn(500, 2)
-    # data3 = np.random.randn(500, 2)-100
-    # data1 = np.append(data1,data3,axis = 0)
+    new_data_set,eigenvector1 = PCA(eigenvalue,eigenvector,data_set)
+    new_dimension_data = get_new_points(new_data_set,eigenvector1)
     cost = []
-    for i in range(1,5):
+    for i in range(1,6):
         cost1 = k_means_clustering(i,new_dimension_data)
         cost.append(cost1)
-        # plt.plot(i,cost1,'.')
     print(cost)
-    for i in range(len(cost)):
-        plt.plot(i,cost[i],'.')
+    plt.plot(cost)
+    # for i in range(len(cost)):
+    #     plt.plot(i,cost[i],'.')
     plt.show()
     # plt.plot(data1[:,0],data1[:,1],'+')
     # plt.show()
