@@ -1,21 +1,10 @@
 from sklearn.datasets import load_boston
 import numpy as np
 import math
-from sklearn.preprocessing import Imputer
+import Data_processing
 import matplotlib.pyplot as plt
 import pandas as pd
 import random
-def normalization(xis):
-    for i in range(xis.shape[1]):
-        # print(xis[:,i])
-        mean = np.mean(xis[:,i])
-        #judge if the variance of this column is 0 or not 
-        std_variance = np.std(xis[:,i],ddof=1)
-        if(std_variance==0):
-            pass
-        else:
-            xis[:,i] = (xis[:,i]-mean)/np.abs(std_variance)
-    return xis
 def get_C(xis):
     return (np.dot(np.transpose(xis),xis))/len(xis)
     # return np.cov(np.array(xis,dtype=float))
@@ -29,9 +18,6 @@ def get_new_points(points,v):
     new_v = v[:,0:points.shape[1]]
     new_points = np.dot(points, np.transpose(new_v))
     return new_points
-def mean_preprocessing(data_set):
-    imp = Imputer(missing_values='NaN',strategy='mean',axis=1)
-    return imp.transform(data_set)
 def PCA(eigenvalue,eigenvector,xis):
     total_value = 0
     for i in range(len(eigenvalue)):
@@ -40,7 +26,7 @@ def PCA(eigenvalue,eigenvector,xis):
     total_real_value = 0
     new_xis = []
     rows = 0
-    while (ratio != 0.8):
+    while (ratio != 0.9):
         max_index = np.argmax(eigenvalue)
         new_xis.append(xis[:,max_index])
         #delete the dimension that has the max value, for the following argmax.
@@ -54,45 +40,8 @@ def PCA(eigenvalue,eigenvector,xis):
     new_eigenvector = eigenvector[:rows,:rows]
     new_axis = np.transpose(np.array(new_xis))
     return new_axis,new_eigenvector
-def data_pruning_for_school_explorer():
-    data_set = pd.read_csv("2016 School Explorer.csv")
-    data_set.drop(data_set.columns[0:6],axis = 1,inplace = True)
-    data_set.drop("Address (Full)",axis = 1,inplace = True)
-    data_set.drop("City",axis = 1,inplace = True)
-    data_set.drop("Collaborative Teachers Rating",axis = 1,inplace = True)
-    data_set.drop("Supportive Environment Rating",axis = 1,inplace = True)
-    data_set.drop("Effective School Leadership Rating",axis = 1,inplace = True)
-    data_set.drop("Strong Family-Community Ties Rating",axis = 1,inplace = True)
-    data_set.drop("Trust Rating",axis = 1,inplace = True)
-    data_set.drop("Student Achievement Rating",axis = 1,inplace = True)
-    data_set.drop("Grades",axis = 1,inplace = True)
-    data_set.drop("Community School?",axis = 1,inplace = True)
-    data_set.drop("Student Attendance Rate",axis = 1,inplace = True)
-    data_set.drop("Percent of Students Chronically Absent",axis = 1,inplace = True)
-    data_set.drop("Rigorous Instruction Rating",axis = 1,inplace = True)
-    data_set.drop("Grade Low",axis = 1,inplace = True)
-    data_set.drop("Grade High",axis = 1,inplace=True)
-    data_set = list(data_set.values)
-    for i in range(len(data_set)):
-        if_nan = (data_set[i][5]==data_set[i][5])
-        if (if_nan==False):
-            data_set[i][5] = 0.0
-        else:
-            data_set[i][5]= data_set[i][5].replace("$","")
-            data_set[i][5]= float(data_set[i][5].replace(",",""))
-        #from column 7 to column 18
-        for j in range(6,18):
-            #数据集的索引7-18需要去掉百分符号并且转化为float
-            if_nan1 = (data_set[i][j]==data_set[i][j])
-            if(if_nan1==False):
-                data_set[i][j] = 0.0
-            else:
-                data_set[i][j]=float(data_set[i][j].replace("%",""))/100 
-    data_set = np.array(data_set)
-    data_set = normalization(data_set)
-    data_set = mean_preprocessing(data_set)
-    return data_set
-def k_means_clustering(k,data_set):
+
+def k_means_clustering(low, median, high,k,data_set):
     #randomly choose k initial center points of clusters, tricky: let data_set be the central points
     def init(k):
         # initial_center = np.zeros((k,len(data_set[0])))
@@ -133,41 +82,101 @@ def k_means_clustering(k,data_set):
             for j in range(len(initial_center[0])):
                 #the ith cluster's central point, change initial central points
                 initial_center[i][j] = averagenum(clusters,i,j)
-        if (step>3):
+        if (step>5):
             break
         else:
             step+=1
     def cal_cost(cluster,initial_center):
         cost = 0.0
-        length = 0
+        size = 0.0
         for i in range(len(initial_center)):
             for j in range(len(clusters[i])):
                 cost+=math.pow(np.linalg.norm(clusters[i][j]-initial_center[i]),2)
-                length+=1
-        return cost/length
-    plt.plot(data_set[:, 0], data_set[:, 1], '+')
+                size+=1
+        return cost/size
+    draw_color_graph(low,median,high,data_set,2,3)
     for i in range(len(initial_center)):
-        plt.plot(initial_center[i][0],initial_center[i][1],'x')
+        plt.scatter(initial_center[i][2],initial_center[i][3],s = 100,c = 'k',marker='o')
+    plt.scatter(initial_center[0][2], initial_center[0][3], c='k', label="Cluster point")
+    plt.legend(loc='upper right')
+    return initial_center,cal_cost(clusters,initial_center)
+#graph with ground truth
+def draw_color_graph(low,median,high,data_set,one,two):
+    plt.plot(data_set[0][one], data_set[0][two], 'r.', label='low')
+    for i in low:
+        plt.plot(data_set[i][one], data_set[i][two], 'r.')
+    plt.legend(loc='upper right')
+    plt.plot(data_set[0][one], data_set[0][two], 'b.', label='median')
+    for i in median:
+        plt.plot(data_set[i][one], data_set[i][two], 'b.')
+    plt.legend(loc='upper right')
+    plt.plot(data_set[0][one], data_set[0][two], 'y.', label='high')
+    for i in high:
+        plt.plot(data_set[i][one], data_set[i][two], 'y.')
+    plt.legend(loc='upper right')
+#gtaph with clustering result
+def label_clustering_graph(initial_center,data_set):
+    clusters = [[] for i in range(len(initial_center))]
+    def cal_cluster(data,initial_center):
+        min_dist = np.inf
+        min_index = np.inf
+        for i in range(len(initial_center)):
+            dist = np.linalg.norm(data-initial_center[i])
+            if (dist<min_dist):
+                min_dist = dist
+                min_index = i
+        return min_index
+    for i in range(len(data_set)):
+        index = cal_cluster(data_set[i],initial_center)
+        clusters[index].append(data_set[i])
+    colors = ['r','b','y','g']
+    count=0
+    plt.figure()
+    for cluster in clusters:
+        cluster = np.array(cluster)
+        print(cluster)
+        plt.scatter(cluster[:,2],cluster[:,3],c = colors[count],marker='.',label = 'data points')
+        count += 1
+
+    for i in range(len(initial_center)):
+        plt.scatter(initial_center[i][2],initial_center[i][3],s = 100,c = 'k',marker='o')
+    plt.scatter(initial_center[0][2], initial_center[0][3], c = 'k',label="Cluster point")
+    plt.legend(loc='upper left')
     plt.show()
-    return cal_cost(clusters,initial_center)
+def PCA_topo_with_two_leadingeigen(dataset,vector,i,j):
+    """we only need two eigen-direction, which means two lead eigen vectors"""
+    plt.figure(j)
+    plt.plot(dataset[:,i],dataset[:,j],'.',label = 'data points')
+    plt.plot(vector[0:2,i],vector[0:2,j],'o',label = 'eigen vectors')
+    plt.legend(loc = "upper left")
+    plt.show()
 if __name__=="__main__":
-    
-    data_set = data_pruning_for_school_explorer()
+    low, median, high,data_set = Data_processing.data_pruning_for_school_explorer()
     C = get_C(data_set)
     eigenvalue,eigenvector = get_eigen(C)
     # eigenvalue = np.array(eigenvalue,dtype=float)
     #do principle component analysis
     new_data_set,eigenvector1 = PCA(eigenvalue,eigenvector,data_set)
     new_dimension_data = get_new_points(new_data_set,eigenvector1)
+    # for i in range(0,3):
+    #     PCA_topo_with_two_leadingeigen(new_dimension_data,eigenvector,i,i+1)
+    
+    # plt.figure()
+    # plt.plot(eigenvalue)
     cost = []
-    for i in range(1,6):
-        cost1 = k_means_clustering(i,new_dimension_data)
-        cost.append(cost1)
-    print(cost)
-    plt.plot(cost)
+    location = 1
+    # initial_center, cost1 = k_means_clustering(low, median, high, 3, new_dimension_data)
+    # label_clustering_graph(initial_center,new_dimension_data)
+    # '''PCA graph based on k-means'''
+    # initial_center,cost1 = k_means_clustering(low, median, high,3,new_dimension_data)
+    # label_clustering_graph(initial_center,new_dimension_data)
+    # '''PCA graph based on k-means'''
+    # print(cost)
+    # plt.figure()
+    # plt.plot(cost)
     # for i in range(len(cost)):
     #     plt.plot(i,cost[i],'.')
-    plt.show()
+    # plt.show()
     # plt.plot(data1[:,0],data1[:,1],'+')
     # plt.show()
 

@@ -1,0 +1,14 @@
+This is the graph i paint through gmapping
+
+And the command you take is 
+Roscore
+
+
+Rosbag play turtle_slam0417.bag
+
+
+And then you need to add a node to receive the data
+
+
+Then use rosrun map_server to store the map
+Here is the map i paint.
